@@ -5,6 +5,12 @@ import sklearn
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, StandardScaler, MinMaxScaler
 
 Steel_Data = pd.read_excel("../data/NIMS_FATIGUE.xlsx")
+Steel_Data.columns = Steel_Data.columns.str.strip()
+
+# Summarize data
+pd.set_option("display.width", 300)
+pd.set_option("display.max_columns", None) # to show all columns
+print(Steel_Data.describe())
 
 # Tester konvertering til log10 av Nf verdiene i datasettet. Legger log10 verdiene som egen kolonne i datasettet
 Steel_Data["Nf_log"] = np.log10(Steel_Data["Nf"])
@@ -30,7 +36,7 @@ print(Steel_Data.info())
 
 
 # Kjøre OneHotEncoding på kolonne "Testing Material" - gir egne kolonner for hver kategori - med binære verdier i kolonnene
-encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
 testing_material_encoded = encoder.fit_transform(Steel_Data[['Testing Material']])
 testing_material_encoded_df = pd.DataFrame(testing_material_encoded, columns=encoder.get_feature_names_out(['Testing Material']))
 Steel_Data2 = pd.concat([Steel_Data, testing_material_encoded_df], axis=1)
@@ -44,3 +50,21 @@ Steel_Data3 = pd.concat([Steel_Data2, type_of_test_encoded_df], axis=1)
 Steel_Data3.drop(columns=['Type of test'], inplace=True)
 print(Steel_Data3.head())
 print(Steel_Data.head())
+
+
+# Choosing which Standardize to use
+scaler = StandardScaler() # No fixed bounds, sensetive to extreme outliers. No fixed range
+#scaler = MinMaxScaler() # Opposite situation, where all values could be too squeezed of outlier. Range [0,1]
+#scaler = RobustScaler() # If we gonna try to use all values, this one could work better. No fixed range
+
+Steel_Data_Scaled = Steel_Data.copy()
+# List of all columns to standardize
+columns = ["Reduction Ratio", "Normalizing temp", "Quenching temp", "Tempering temp", "0.2% proof stress",
+        "Upper yield stress", "Tensile strength", "True fracture stress", "Vickers hardness", "σa"]
+print(Steel_Data_Scaled[columns].head())
+Steel_Data_Scaled[columns] = scaler.fit_transform(Steel_Data_Scaled[columns])
+
+
+
+print("------------------------------------------")
+print(Steel_Data_Scaled.describe())
