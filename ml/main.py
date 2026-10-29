@@ -61,6 +61,7 @@ Steel_Data3["quenching_temp_present"] = Steel_Data3["Quenching temp"].notna().as
 Steel_Data3["tempering_temp_present"] = Steel_Data3["Tempering temp"].notna().astype(int)
 
 # Secondly the missing values in the original columns will be filled with 0, as the presence or absence of these values is already captured in the new columns.
+# It is not considered appropriate to fill the missing values with the mean or median, as this would introduce information about treatments on the metal that have not actually been performed.
 Steel_Data3["Normalizing temp"] = Steel_Data3["Normalizing temp"].fillna(0)
 Steel_Data3["Quenching temp"] = Steel_Data3["Quenching temp"].fillna(0)
 Steel_Data3["Tempering temp"] = Steel_Data3["Tempering temp"].fillna(0)
