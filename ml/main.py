@@ -34,7 +34,7 @@ Steel_Data.drop(columns=['Heat', 'DS No. PDF'], inplace=True)
 print(Steel_Data.head())
 print(Steel_Data.info())
 
-
+##########################
 # Kjøre OneHotEncoding på kolonne "Testing Material" - gir egne kolonner for hver kategori - med binære verdier i kolonnene
 encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
 testing_material_encoded = encoder.fit_transform(Steel_Data[['Testing Material']])
@@ -50,6 +50,7 @@ Steel_Data3 = pd.concat([Steel_Data2, type_of_test_encoded_df], axis=1)
 Steel_Data3.drop(columns=['Type of test'], inplace=True)
 print(Steel_Data3.head())
 
+###########################
 # The attributes of the dataset regarding temperature are "Normalizing temp", "Quenching temp" and "Tempering temp".
 # These attributes have quite a few rows with missing values, and it is considered informative to retain information about their presence or absence.
 # Due to the fact that these attributes are related to heat treatment processes, the presence or absence of these values may provide valuable insights for the model.
@@ -68,6 +69,32 @@ Steel_Data3["Tempering temp"] = Steel_Data3["Tempering temp"].fillna(0)
 
 print(Steel_Data3.head())
 
+##############################
+# Run correlation analysis of columns to identify those that are highly correlated with each other.
+# This can help reduce multicollinearity in the model and improve its performance.
+# Running Pandas corr() function with Spearman method.
+corr_matrix = Steel_Data3.corr(method="spearman", numeric_only=True)
+
+upper = corr_matrix.where(
+    np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)
+    )
+
+high_corr = (
+    upper.stack()
+         .reset_index()
+    )
+
+high_corr.columns = ["Feature1", "Feature2", "Correlation"]
+
+high_corr = high_corr.reindex(
+    high_corr["Correlation"].abs().sort_values(ascending=False).index
+    )
+
+print(high_corr.head(20))
+#print(high_corr.to_string())
+
+
+###############################
 # Choosing which Standardize to use
 scaler = StandardScaler() # No fixed bounds, sensetive to extreme outliers. No fixed range
 #scaler = MinMaxScaler() # Opposite situation, where all values could be too squeezed of outlier. Range [0,1]
