@@ -90,6 +90,7 @@ high_corr = high_corr.reindex(
     high_corr["Correlation"].abs().sort_values(ascending=False).index
     )
 
+print("------------------------------------------")
 print(high_corr.head(20))
 #print(high_corr.to_string())
 
