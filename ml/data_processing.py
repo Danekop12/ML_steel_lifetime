@@ -4,13 +4,18 @@ import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, MinMaxScaler, RobustScaler
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "NIMS_FATIGUE.xlsx"
-print("Looking for:", DATA_PATH)
-print("Exists:", DATA_PATH.exists())
+#print("Looking for:", DATA_PATH)
+#print("Exists:", DATA_PATH.exists())
+
+
+def load_raw_data():
+    Steel_Data = pd.read_excel(DATA_PATH)
+    Steel_Data.columns = Steel_Data.columns.str.strip()
+    return Steel_Data
 
 
 def process_data(output_name="NIMS_FATIGUE_processed"):
-    Steel_Data = pd.read_excel(DATA_PATH)
-    Steel_Data.columns = Steel_Data.columns.str.strip()
+    Steel_Data = load_raw_data()
     #Steel_Data = pd.read_excel("../data/NIMS_FATIGUE.xlsx")
     #Steel_Data.columns = Steel_Data.columns.str.strip()
 

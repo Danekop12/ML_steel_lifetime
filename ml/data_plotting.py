@@ -1,19 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from data_processing import process_data
-
-fields_to_try = ["σa", "Elongation", "Tempering temp", "Vickers hardness", "dA",
-            "Reduction of area", "Type of test_Uniaxial loading", "dB",
-            "Normalizing temp", "Nf_log"]
+from data_processing import load_raw_data
 
 
-def show_high_correlations(Steel_Data3):
+def show_high_correlations(data, threshold=0.8, method="spearman", drop_columns=("DS No. PDF",)):
     ##############################
     # Run correlation analysis of columns to identify those that are highly correlated with each other.
     # This can help reduce multicollinearity in the model and improve its performance.
     # Running Pandas corr() function with Spearman method.
-    corr_matrix = Steel_Data3.corr(method="spearman", numeric_only=True)
+    corr_matrix = data.drop(columns=list(drop_columns), errors="ignore").corr(method=method, numeric_only=True)
 
     upper = corr_matrix.where(
         np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)
@@ -26,13 +22,16 @@ def show_high_correlations(Steel_Data3):
 
     high_corr.columns = ["Feature1", "Feature2", "Correlation"]
 
+    high_corr = high_corr[high_corr["Correlation"].abs() >= threshold]
+
     high_corr = high_corr.reindex(
         high_corr["Correlation"].abs().sort_values(ascending=False).index
         )
 
     print("------------------------------------------")
-    print(high_corr.head(20))
+    print(high_corr.to_string(index=False))
     #print(high_corr.to_string())
+    return high_corr
 
 
 #function to create plot correlation between two selected features
@@ -48,26 +47,44 @@ def create_correlation_plot(data, feature1, feature2):
     plt.show()
 
 
-def create_correlation_heatmap(data, fields_to_try):
-    correlation = data[fields_to_try].corr(method="spearman")
+def create_correlation_heatmap(data, columns=None, method="spearman", threshold=0.8, drop_columns=("DS No. PDF",), figsize=None):
+    numeric = data.select_dtypes(include="number").drop(columns=list(drop_columns), errors="ignore")
+    if columns is not None:
+        numeric = numeric[columns]
 
-    fig, ax = plt.subplots(figsize=(9, 7))
-    im = ax.imshow(correlation, cmap="coolwarm", vmin=-1, vmax=1)
-    ax.set_xticks(range(len(fields_to_try)))
-    ax.set_xticklabels(fields_to_try, rotation=45, ha="right")
-    ax.set_yticks(range(len(fields_to_try)))
-    ax.set_yticklabels(fields_to_try)
-    for i in range(len(fields_to_try)):
-        for j in range(len(fields_to_try)):
-            ax.text(j, i, f"{correlation.iloc[i, j]:.2f}", ha="center", va="center", fontsize=8)
-    fig.colorbar(im, ax=ax, label="Spearman correlation")
-    ax.set_title("Correlation between selected features and log10(Nf)")
+    correlation = numeric.corr(method=method)
+    names = list(correlation.columns)
+    n = len(names)
+
+    hidden = np.triu(np.ones((n, n), dtype=bool), k=1)
+    shown = correlation.where(~hidden)
+
+    if figsize is None:
+        figsize = (0.38 * n + 2.5, 0.32 * n + 1.7)
+    fig, ax = plt.subplots(figsize=figsize)
+    im = ax.imshow(shown, cmap="coolwarm", vmin=-1, vmax=1)
+    ax.set_xticks(range(n))
+    ax.set_xticklabels(names, rotation=45, ha="right", fontsize=8)
+    ax.set_yticks(range(n))
+    ax.set_yticklabels(names, fontsize=8)
+    for i in range(n):
+        for j in range(i + 1):
+            value = correlation.iloc[i, j]
+            strong = abs(value) >= threshold and i != j
+            ax.text(j, i, f"{value:.2f}", ha="center", va="center", fontsize=7,
+                    fontweight="bold" if strong else "normal",
+                    color="white" if abs(value) > 0.7 else "black")
+    fig.colorbar(im, ax=ax, label=f"{method.capitalize()} correlation")
+    
+    ax.set_title(f"{method.capitalize()} correlation", fontsize=10)
+    #ax.set_title(f"{method.capitalize()} correlation (threshold |r| >= {threshold})", fontsize=10)
     fig.tight_layout()
     plt.show()
+    return correlation
 
 
 if __name__ == "__main__":
-    Steel_Data, Steel_Data3, Steel_Data_Scaled, groups = process_data()
-    show_high_correlations(Steel_Data3)
-    create_correlation_plot(Steel_Data3, "σa", "Elongation")
-    create_correlation_heatmap(Steel_Data3, fields_to_try)
+    Steel_Data = load_raw_data()
+    show_high_correlations(Steel_Data)
+    create_correlation_heatmap(Steel_Data)
+    create_correlation_plot(Steel_Data, "0.2% proof stress", "Upper yield stress")
