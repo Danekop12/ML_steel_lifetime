@@ -83,6 +83,9 @@ def process_data(output_name="NIMS_FATIGUE_processed"):
 
     print(Steel_Data3.head())
 
+    # Remove columns "Upper yield stress", "0,2% proof stress", "Tensile strength" and "True fracture stress"as they are highly correlated with "Tensile strength" and "Vickers hardness" and may introduce multicollinearity in the model.
+    Steel_Data3.drop(columns=['Upper yield stress', '0.2% proof stress', 'Tensile strength', 'True fracture stress'], inplace=True)
+
     ###############################
     # Choosing which Standardize to use
     scaler = StandardScaler() # No fixed bounds, sensetive to extreme outliers. No fixed range
@@ -91,8 +94,7 @@ def process_data(output_name="NIMS_FATIGUE_processed"):
 
     Steel_Data_Scaled = Steel_Data3.copy()
     # List of all columns to standardize
-    columns = ["Reduction Ratio", "Normalizing temp", "Quenching temp", "Tempering temp", "0.2% proof stress",
-            "Upper yield stress", "Tensile strength", "True fracture stress", "Vickers hardness", "σa"]
+    columns = ["Reduction Ratio", "Normalizing temp", "Quenching temp", "Tempering temp", "Vickers hardness", "σa"]
     print(Steel_Data_Scaled[columns].head())
     Steel_Data_Scaled[columns] = scaler.fit_transform(Steel_Data_Scaled[columns])
 
