@@ -37,7 +37,7 @@ def model_LinearRegression():
 
     print("Mean absolute error: %.2f" % mae)
     print("Mean squared error: %.2f" % mse)
-    print("Residual sum of squares (MSE): %.2f" % mse ** 2)
+    print("Root mean squared error: %.2f" % rmse)
     print("R2-score: %.2f" % r2)
 
     # Plot the actual values against the predicted values on a log-log scale to visualize the model's performance
@@ -49,7 +49,7 @@ def model_LinearRegression():
     plt.plot([p1, p2], [p1, p2], 'b-')
     plt.xlabel('Actual values')
     plt.ylabel('Predicted values')
-    #lt.axis('equal')
+    #plt.axis('equal')
     plt.show()
 
 
