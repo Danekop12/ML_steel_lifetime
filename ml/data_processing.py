@@ -7,6 +7,17 @@ DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "NIMS_FATIGUE.xlsx
 #print("Looking for:", DATA_PATH)
 #print("Exists:", DATA_PATH.exists())
 
+NON_FEATURE_COLUMNS = ["Nf", "Nf_log", "weight", "group"]
+
+NF_LOWER = 1e5
+NF_UPPER = 1e7
+NF_UPPER_HIGH = 3e7
+
+DATASETS = {
+    "Nf up to 1e7": ("NIMS_FATIGUE_processed", NF_UPPER),
+    "Nf up to 3e7": ("NIMS_FATIGUE_processed_high", NF_UPPER_HIGH),
+}
+
 
 def load_raw_data():
     Steel_Data = pd.read_excel(DATA_PATH)
@@ -14,7 +25,27 @@ def load_raw_data():
     return Steel_Data
 
 
-def process_data(output_name="NIMS_FATIGUE_processed"):
+def filter_nf_range(Steel_Data, lower=NF_LOWER, upper=NF_UPPER):
+    kept = Steel_Data[(Steel_Data["Nf"] >= lower) & (Steel_Data["Nf"] <= upper)]
+    print(f"Nf range filter: kept {len(kept)} of {len(Steel_Data)} rows ({lower:g} <= Nf <= {upper:g})")
+    return kept
+
+
+def add_duplicate_weights(Steel_Data):
+    columns = list(Steel_Data.columns)
+    Steel_Data["weight"] = Steel_Data.groupby(columns, dropna=False)["Nf"].transform("size")
+    return Steel_Data
+
+
+def load_processed_data(scaled=False, output_name="NIMS_FATIGUE_processed"):
+    suffix = "_scaled" if scaled else ""
+    path = DATA_PATH.parent / f"{output_name}{suffix}.csv"
+    if not path.exists():
+        raise FileNotFoundError(f"{path} not found. Run data_processing.py first to create it.")
+    return pd.read_csv(path)
+
+
+def process_data(output_name="NIMS_FATIGUE_processed", nf_upper=NF_UPPER):
     Steel_Data = load_raw_data()
     #Steel_Data = pd.read_excel("../data/NIMS_FATIGUE.xlsx")
     #Steel_Data.columns = Steel_Data.columns.str.strip()
@@ -35,6 +66,9 @@ def process_data(output_name="NIMS_FATIGUE_processed"):
     # sjekker for  og skriver ut duplikate rader #### Hva gjør vi med alle radene som er like?? og hvordan identifisere hvilke som er like
     duplikat_rader = Steel_Data[Steel_Data.duplicated(keep=False)]
     print(duplikat_rader) # oppgis å være 615 duplikate rader (men da flere ulike duplikater)
+
+    Steel_Data = filter_nf_range(Steel_Data, upper=nf_upper)
+    Steel_Data = add_duplicate_weights(Steel_Data)
 
     # Sletter alle duplikate rader - beholder bare første forekomst 
     Steel_Data = Steel_Data.drop_duplicates(keep='first').reset_index(drop=True)
@@ -85,6 +119,7 @@ def process_data(output_name="NIMS_FATIGUE_processed"):
 
     # Remove columns "Upper yield stress", "0,2% proof stress", "Tensile strength" and "True fracture stress"as they are highly correlated with "Tensile strength" and "Vickers hardness" and may introduce multicollinearity in the model.
     Steel_Data3.drop(columns=['Upper yield stress', '0.2% proof stress', 'Tensile strength', 'True fracture stress'], inplace=True)
+    Steel_Data3["group"] = groups
 
     ###############################
     # Choosing which Standardize to use
@@ -105,3 +140,8 @@ def process_data(output_name="NIMS_FATIGUE_processed"):
     Steel_Data_Scaled.to_csv(DATA_PATH.parent / f"{output_name}_scaled.csv", index=False)
 
     return Steel_Data, Steel_Data3, Steel_Data_Scaled, groups
+
+
+if __name__ == "__main__":
+    for output_name, nf_upper in DATASETS.values():
+        process_data(output_name=output_name, nf_upper=nf_upper)
