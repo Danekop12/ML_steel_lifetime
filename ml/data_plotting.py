@@ -93,7 +93,7 @@ def create_correlation_heatmap(data, columns=None, method="spearman", threshold=
 # Plots for the data processing decisions
 
 # One fixed color for each heat treatment route
-ROUTE_COLORS = {"N": "#2a78d6", "NQT": "#eb6834", "QT": "#1baf7a"}
+ROUTE_COLORS = {"N": "blue", "NQT": "red", "QT": "green"}
 ROUTE_NAMES = {"N": "Normalizing only", "NQT": "Normalizing + quenching + tempering", "QT": "Quenching + tempering"}
 
 
@@ -120,7 +120,7 @@ def plot_nf_distribution(data, lower=1e5, upper=1e7):
 
 
 def plot_sn_curve(data):
-    # The classic fatigue plot: stress amplitude against cycles to failure, one color per heat treatment route
+    # The classic fatigue plot: stress amplitude against cycles to failure, different colors for groups
     route = get_heat_route(data)
 
     fig, ax = plt.subplots(figsize=(9, 6))
@@ -138,7 +138,7 @@ def plot_sn_curve(data):
 
 
 def plot_feature_distributions(data, drop_columns=("DS No. PDF", "Nf")):
-    # One histogram per numeric column: shows the scale of each feature and values far from the rest
+    # Shows the scale of each feature and values far from the rest
     numeric = data.select_dtypes(include="number").drop(columns=list(drop_columns), errors="ignore")
     numeric.hist(bins=30, figsize=(14, 10), color="blue")
     plt.suptitle("Distribution of each numeric feature")
