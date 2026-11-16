@@ -1,7 +1,13 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
-from data_processing import load_raw_data
+DATA_PATH = "../data/NIMS_FATIGUE.xlsx"
+
+def load_raw_data():
+    Steel_Data = pd.read_excel(DATA_PATH)
+    Steel_Data.columns = Steel_Data.columns.str.strip()
+    return Steel_Data
 
 
 def show_high_correlations(data, threshold=0.8, method="spearman", drop_columns=("DS No. PDF",)):
@@ -83,8 +89,69 @@ def create_correlation_heatmap(data, columns=None, method="spearman", threshold=
     return correlation
 
 
+##############################
+# Plots for the data processing decisions
+
+# One fixed color for each heat treatment route
+ROUTE_COLORS = {"N": "#2a78d6", "NQT": "#eb6834", "QT": "#1baf7a"}
+ROUTE_NAMES = {"N": "Normalizing only", "NQT": "Normalizing + quenching + tempering", "QT": "Quenching + tempering"}
+
+
+def get_heat_route(data):
+    # The route is found from which temperatures are filled in ("N", "NQT" or "QT")
+    normalized = data["Normalizing temp"].notna()
+    quenched = data["Quenching temp"].notna()
+    return normalized.map({True: "N", False: ""}) + quenched.map({True: "QT", False: ""})
+
+
+def plot_nf_distribution(data, lower=1e5, upper=1e7):
+    # Shows the range of the target, the run-out spikes and how much the Nf range filter removes
+    nf_log = np.log10(data["Nf"])
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.hist(nf_log, bins=120, color="blue")
+    ax.axvline(np.log10(lower), color="gray", linestyle="--", linewidth=1)
+    ax.axvline(np.log10(upper), color="gray", linestyle="--", linewidth=1)
+    ax.set_xlabel("log10(Nf)")
+    ax.set_ylabel("Number of rows")
+    ax.set_title("Distribution of Nf (dashed lines: the Nf range filter)")
+    fig.tight_layout()
+    plt.show()
+
+
+def plot_sn_curve(data):
+    # The classic fatigue plot: stress amplitude against cycles to failure, one color per heat treatment route
+    route = get_heat_route(data)
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for name in ROUTE_COLORS:
+        rows = data[route == name]
+        label = f"{ROUTE_NAMES[name]} ({len(rows)} rows)"
+        ax.scatter(rows["Nf"], rows["σa"], s=12, alpha=0.5, color=ROUTE_COLORS[name], label=label)
+    ax.set_xscale("log")
+    ax.set_xlabel("Nf")
+    ax.set_ylabel("σa (MPa)")
+    ax.set_title("S-N plot for different heat treatment routes")
+    ax.legend()
+    fig.tight_layout()
+    plt.show()
+
+
+def plot_feature_distributions(data, drop_columns=("DS No. PDF", "Nf")):
+    # One histogram per numeric column: shows the scale of each feature and values far from the rest
+    numeric = data.select_dtypes(include="number").drop(columns=list(drop_columns), errors="ignore")
+    numeric.hist(bins=30, figsize=(14, 10), color="blue")
+    plt.suptitle("Distribution of each numeric feature")
+    plt.tight_layout()
+    plt.show()
+
+
+
 if __name__ == "__main__":
     Steel_Data = load_raw_data()
     show_high_correlations(Steel_Data)
     create_correlation_heatmap(Steel_Data)
     create_correlation_plot(Steel_Data, "0.2% proof stress", "Upper yield stress")
+    plot_nf_distribution(Steel_Data)
+    plot_sn_curve(Steel_Data)
+    plot_feature_distributions(Steel_Data)
