@@ -1,21 +1,20 @@
+import os
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
-DATA_PATH = "../data/NIMS_FATIGUE.xlsx"
-PROCESSED_PATH = "../data/NIMS_FATIGUE_processed.csv"
+COMMON_FOLDER = os.path.dirname(os.path.abspath(__file__))
+DATA_STEEL_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE.xlsx")
+DATA_PROCESSED_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE_processed.csv")
 
-##############################
-# Processing options. Change one at a time, run main.py and note the result.
+# Range of Nf to keep. Filtered after applying log10 function
+NF_MIN = 5
+NF_MAX = 7
 
-# Only rows with Nf between these two values are used
-NF_LOWER = 1e5
-NF_UPPER = 1e7
-
-# Run-outs are tests that were stopped without failure. They are logged at the stop value
-# (584 rows at exactly 2.12e7 and 126 rows at exactly 1e7), so their Nf is not a real lifetime.
-REMOVE_RUNOUTS = False
+#List of columns to remove from dataset.
+# All columns: "dA", "dB", "dC", "Upper yield stress", "0.2% proof stress", "Tensile strength", "True fracture stress", "Normalizing temp", "Quenching temp", "Tempering temp", "σa / Vickers hardness", "σa", "Vickers hardness", "Testing Material", "Type of test", "Nf", "Nf_log"
+REMOVE_COLUMNS = ["dA", "dB", "dC"]
 
 # Which heat treatment route to use:
 #   "all" - all rows
@@ -30,37 +29,19 @@ HEAT_TREATMENT = "all"
 #   "drop_rows" - remove all rows with missing values (as in the paper)
 MISSING_TEMP = "zero"
 
-# Remove rows that are exact copies of another row
-REMOVE_DUPLICATES = True
-
 # Remove the 40 rows of S40C tempered at 180 °C. Their hardness (585) is far from all other rows (130-390).
 REMOVE_LOW_TEMPERING = False
 
 # Remove outliers in Nf_log with the IQR method
-REMOVE_OUTLIERS = False
-
-# How the steel grade is turned into numbers:
-#   "onehot" - one 0/1 column for each grade
-#   "carbon" - one column with the carbon content (S25C = 0.25)
-MATERIAL_ENCODING = "onehot"
-
-# Drop the inclusion columns dA, dB and dC (done in the paper)
-DROP_INCLUSIONS = False
+REMOVE_OUTLIERS = True
 
 # Drop the four stress columns that are highly correlated with Vickers hardness
 DROP_CORRELATED = True
 
-# Extra features made from the existing columns
-ADD_LOG_STRESS = False     # log10 of σa (Basquin's law: log Nf is close to linear in log σa)
-ADD_STRESS_RATIO = False   # σa divided by Vickers hardness
-
 ##############################
 
-RUNOUT_VALUES = [1e7, 2.12e7]
 TEMP_COLUMNS = ["Normalizing temp", "Quenching temp", "Tempering temp"]
-INCLUSION_COLUMNS = ["dA", "dB", "dC"]
 CORRELATED_COLUMNS = ["Upper yield stress", "0.2% proof stress", "Tensile strength", "True fracture stress"]
-CARBON_CONTENT = {"S25C": 0.25, "S35C": 0.35, "S40C": 0.40, "S45C": 0.45, "S55C": 0.55}
 
 SCALERS = {
     "standard": StandardScaler(),   # No fixed range, sensitive to extreme outliers
@@ -72,9 +53,23 @@ SCALERS = {
 NON_FEATURE_COLUMNS = ["Nf", "Nf_log"]
 
 
-def load_raw_data():
-    Steel_Data = pd.read_excel(DATA_PATH)
+def load_unprocessed_data():
+    Steel_Data = pd.read_excel(DATA_STEEL_PATH)
+    # Fix column "0.2% proof stress"
     Steel_Data.columns = Steel_Data.columns.str.strip()
+    Steel_Data = Steel_Data.drop(columns=["Heat", "DS No. PDF"])
+    return Steel_Data
+
+
+# Drop the specified columns from the DataFrame
+def drop_columns(Steel_Data, columns_to_drop):
+    print("Dropping columns:", columns_to_drop)
+    return Steel_Data.drop(columns=columns_to_drop)
+
+
+# Convert Nf to log10(Nf) and add it as a new column
+def log10_data(Steel_Data):
+    Steel_Data["Nf_log"] = np.log10(Steel_Data["Nf"])
     return Steel_Data
 
 
@@ -87,6 +82,7 @@ def filter_heat_treatment(Steel_Data):
 
     keep = route == HEAT_TREATMENT
     return Steel_Data[keep]
+
 
 
 def add_present_columns(Steel_Data):
@@ -105,32 +101,17 @@ def remove_outliers_iqr(Steel_Data):
     return Steel_Data[keep]
 
 
-def remove_constant_columns(Steel_Data):
-    # Columns with only one value give no information (happens when one heat treatment route is chosen)
-    number_of_values = Steel_Data.nunique()
-    constant_columns = number_of_values[number_of_values == 1].index
-    return Steel_Data.drop(columns=constant_columns)
-
-
 def process_data():
-    Steel_Data = load_raw_data()
-    print("Rows in the raw data:", len(Steel_Data))
+    Steel_Data = load_unprocessed_data()
+    Steel_Data = drop_columns(Steel_Data, REMOVE_COLUMNS)
+    
+    # Convert Nf to log10(Nf)
+    Steel_Data = log10_data(Steel_Data)
 
-    # Log10 of Nf is the target, because Nf spans from 1e4 to 1e10
-    Steel_Data["Nf_log"] = np.log10(Steel_Data["Nf"])
-
-    ##############################
-    # Choose the rows.
-    # The pattern is the same every time: first make a True/False value for every row,
-    # then Steel_Data[keep] returns only the rows where the value is True.
-    keep = Steel_Data["Nf"].between(NF_LOWER, NF_UPPER)
-    Steel_Data = Steel_Data[keep]
-    print("Rows after the Nf range filter:", len(Steel_Data))
-
-    if REMOVE_RUNOUTS:
-        is_runout = Steel_Data["Nf"].isin(RUNOUT_VALUES)
-        Steel_Data = Steel_Data[~is_runout]     # ~ means "not": keep the rows that are not run-outs
-        print("Rows after removing run-outs:", len(Steel_Data))
+    
+    #Filters Nf log by val described earlier
+    Steel_Data = Steel_Data[(Steel_Data["Nf_log"] >= NF_MIN) & (Steel_Data["Nf_log"] <= NF_MAX)]
+    print(Steel_Data["Nf_log"].describe())  # Show the range of Nf_log after filtering
 
     if HEAT_TREATMENT != "all":
         Steel_Data = filter_heat_treatment(Steel_Data)
@@ -144,21 +125,9 @@ def process_data():
     if REMOVE_OUTLIERS:
         Steel_Data = remove_outliers_iqr(Steel_Data)
         print("Rows after removing outliers:", len(Steel_Data))
-
-    if REMOVE_DUPLICATES:
-        Steel_Data = Steel_Data.drop_duplicates()
-        print("Rows after removing duplicates:", len(Steel_Data))
-
-    ##############################
-    # Choose the columns
-    # "Heat" and "DS No. PDF" are ids and not physical properties
-    Steel_Data = Steel_Data.drop(columns=["Heat", "DS No. PDF"])
-
+        
     if DROP_CORRELATED:
         Steel_Data = Steel_Data.drop(columns=CORRELATED_COLUMNS)
-
-    if DROP_INCLUSIONS:
-        Steel_Data = Steel_Data.drop(columns=INCLUSION_COLUMNS)
 
     ##############################
     # Missing temperatures (empty means the step was not performed)
@@ -178,29 +147,15 @@ def process_data():
 
     ##############################
     # Turn the text columns into numbers
-    if MATERIAL_ENCODING == "onehot":
-        Steel_Data = pd.get_dummies(Steel_Data, columns=["Testing Material"], dtype=int)
-
-    if MATERIAL_ENCODING == "carbon":
-        Steel_Data["Carbon content"] = Steel_Data["Testing Material"].map(CARBON_CONTENT)
-        Steel_Data = Steel_Data.drop(columns=["Testing Material"])
+    Steel_Data = pd.get_dummies(Steel_Data, columns=["Testing Material"], dtype=int)
 
     Steel_Data = pd.get_dummies(Steel_Data, columns=["Type of test"], dtype=int)
 
-    ##############################
-    # Extra features
-    if ADD_LOG_STRESS:
-        Steel_Data["σa_log"] = np.log10(Steel_Data["σa"])
-
-    if ADD_STRESS_RATIO:
-        Steel_Data["σa / Vickers hardness"] = Steel_Data["σa"] / Steel_Data["Vickers hardness"]
-
-    Steel_Data = remove_constant_columns(Steel_Data)
     Steel_Data = Steel_Data.reset_index(drop=True)
     print("Processed data:", len(Steel_Data), "rows and", Steel_Data.shape[1] - len(NON_FEATURE_COLUMNS), "features")
 
     # Save the processed data to be able to look at it
-    Steel_Data.to_csv(PROCESSED_PATH, index=False)
+    Steel_Data.to_csv(DATA_PROCESSED_PATH, index=False)
     return Steel_Data
 
 
