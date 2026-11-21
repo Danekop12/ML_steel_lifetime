@@ -10,8 +10,8 @@ PROCESSED_PATH = "../data/NIMS_FATIGUE_processed.csv"
 # Processing options. Change one at a time, run main.py and note the result.
 
 # Only rows with Nf between these two values are used
-NF_LOWER = 1e5
-NF_UPPER = 1e7
+NF_LOWER = 1e4
+NF_UPPER = 4e6
 
 # Run-outs are tests that were stopped without failure. They are logged at the stop value
 # (584 rows at exactly 2.12e7 and 126 rows at exactly 1e7), so their Nf is not a real lifetime.
