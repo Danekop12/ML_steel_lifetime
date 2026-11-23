@@ -11,17 +11,18 @@ from xgboost import XGBRegressor
 # Every model function trains on the training set and returns the predictions for the test set.
 
 
-def get_evaluation(name, y_test, y_pred):
+def evaluating(name, y_test, y_pred):
     mae = mean_absolute_error(y_test, y_pred)
     mse = mean_squared_error(y_test, y_pred)
     rmse = np.sqrt(mse)
     r2 = r2_score(y_test, y_pred)
 
-    print("Evaluation metrics for", name, " :")
-    print(f"Mean absolute error: {mae:.3f}")
-    print(f"Mean squared error: {mse:.3f}")
-    print(f"Root mean squared error: {rmse:.3f}")
-    print(f"R2-score: {r2:.3f}")
+    print("------------------------------------------")
+    print(name)
+    print("Mean absolute error: %.3f" % mae)
+    print("Mean squared error: %.3f" % mse)
+    print("Root mean squared error: %.3f" % rmse)
+    print("R2-score: %.3f" % r2)
 
 
 def plot_predictions(name, y_test, y_pred):
@@ -34,6 +35,18 @@ def plot_predictions(name, y_test, y_pred):
     plt.xlabel('Actual values (Nf_log)')
     plt.ylabel('Predicted values (Nf_log)')
     plt.title(name)
+    plt.show()
+
+
+def plot_history(name, history):
+    # Plot the training and validation loss for each epoch
+    plt.figure(figsize=(8, 5))
+    plt.plot(history.history["loss"], label="Training loss")
+    plt.plot(history.history["val_loss"], label="Validation loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss (MSE)")
+    plt.title(name)
+    plt.legend()
     plt.show()
 
 
@@ -94,6 +107,7 @@ def model_PolynomialRegression(X_train, y_train, X_test, degree=3, l2=0.001, lea
     history = model.fit(X_train_poly, y_train_array, epochs=epochs, batch_size=batch_size,
                         validation_split=0.2, callbacks=[early_stop], verbose=0)
     print("Epochs run:", len(history.history["loss"]), "of", epochs)
+    plot_history("Polynomial regression (degree %d)" % degree, history)
 
     return model.predict(X_test_poly, verbose=0).ravel()
 
@@ -120,6 +134,7 @@ def model_MLP_Regression(X_train, y_train, X_test, hidden_layers=(256, 256, 256,
     history = model.fit(X_train_array, y_train_array, epochs=epochs, batch_size=batch_size,
                         validation_split=0.2, callbacks=[early_stop], verbose=0)
     print("Epochs run:", len(history.history["loss"]), "of", epochs)
+    plot_history("MLP " + str(hidden_layers), history)
 
     return model.predict(X_test_array, verbose=0).ravel()
 

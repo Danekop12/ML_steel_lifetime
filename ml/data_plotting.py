@@ -1,21 +1,16 @@
-# Used to analyze and plot data, indepentednt of the rest of the code
-import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-COMMON_FOLDER = os.path.dirname(os.path.abspath(__file__))
-DATA_STEEL_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE.xlsx")
+DATA_PATH = "../data/NIMS_FATIGUE.xlsx"
 
-def load_unprocessed_data():
-    Steel_Data = pd.read_excel(DATA_STEEL_PATH)
-    # Fix column "0.2% proof stress"
+def load_raw_data():
+    Steel_Data = pd.read_excel(DATA_PATH)
     Steel_Data.columns = Steel_Data.columns.str.strip()
-    Steel_Data = Steel_Data.drop(columns=["Heat", "DS No. PDF"])
     return Steel_Data
 
 
-def show_high_correlations(data, persentage_to_show=0.8, method="spearman", drop_columns=("DS No. PDF",)):
+def show_high_correlations(data, threshold=0.8, method="spearman", drop_columns=("DS No. PDF",)):
     ##############################
     # Run correlation analysis of columns to identify those that are highly correlated with each other.
     # This can help reduce multicollinearity in the model and improve its performance.
@@ -33,7 +28,7 @@ def show_high_correlations(data, persentage_to_show=0.8, method="spearman", drop
 
     high_corr.columns = ["Feature1", "Feature2", "Correlation"]
 
-    high_corr = high_corr[high_corr["Correlation"].abs() >= persentage_to_show]
+    high_corr = high_corr[high_corr["Correlation"].abs() >= threshold]
 
     high_corr = high_corr.reindex(
         high_corr["Correlation"].abs().sort_values(ascending=False).index
@@ -58,11 +53,10 @@ def create_correlation_plot(data, feature1, feature2):
     plt.show()
 
 
-def create_correlation_heatmap(steel_data, columns=None, method="spearman", threshold=0.8, figsize=None):
+def create_correlation_heatmap(data, columns=None, method="spearman", threshold=0.8, drop_columns=("DS No. PDF",), figsize=None):
+    numeric = data.select_dtypes(include="number").drop(columns=list(drop_columns), errors="ignore")
     if columns is not None:
-        numeric = steel_data[columns]
-    else:
-        numeric = steel_data.select_dtypes(include=[np.number])
+        numeric = numeric[columns]
 
     correlation = numeric.corr(method=method)
     names = list(correlation.columns)
@@ -110,15 +104,17 @@ def get_heat_route(data):
     return normalized.map({True: "N", False: ""}) + quenched.map({True: "QT", False: ""})
 
 
-def plot_nf_distribution(data):
+def plot_nf_distribution(data, lower=1e5, upper=1e7):
     # Shows the range of the target, the run-out spikes and how much the Nf range filter removes
     nf_log = np.log10(data["Nf"])
 
     fig, ax = plt.subplots(figsize=(9, 5))
     ax.hist(nf_log, bins=120, color="blue")
+    ax.axvline(np.log10(lower), color="gray", linestyle="--", linewidth=1)
+    ax.axvline(np.log10(upper), color="gray", linestyle="--", linewidth=1)
     ax.set_xlabel("log10(Nf)")
     ax.set_ylabel("Number of rows")
-    ax.set_title("Distribution of Nf")
+    ax.set_title("Distribution of Nf (dashed lines: the Nf range filter)")
     fig.tight_layout()
     plt.show()
 
@@ -152,10 +148,10 @@ def plot_feature_distributions(data, drop_columns=("DS No. PDF", "Nf")):
 
 
 if __name__ == "__main__":
-    data = load_unprocessed_data()
-    show_high_correlations(data)
-    create_correlation_heatmap(data)
-    #create_correlation_plot(data, "0.2% proof stress", "Upper yield stress")
-    plot_nf_distribution(data)
-    plot_sn_curve(data)
-    plot_feature_distributions(data)
+    Steel_Data = load_raw_data()
+    show_high_correlations(Steel_Data)
+    create_correlation_heatmap(Steel_Data)
+    create_correlation_plot(Steel_Data, "0.2% proof stress", "Upper yield stress")
+    plot_nf_distribution(Steel_Data)
+    plot_sn_curve(Steel_Data)
+    plot_feature_distributions(Steel_Data)
