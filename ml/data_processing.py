@@ -93,14 +93,6 @@ def add_present_columns(Steel_Data):
     return Steel_Data
 
 
-def remove_outliers_iqr(Steel_Data):
-    q1 = Steel_Data["Nf_log"].quantile(0.25)
-    q3 = Steel_Data["Nf_log"].quantile(0.75)
-    iqr = q3 - q1
-    keep = Steel_Data["Nf_log"].between(q1 - 1.5 * iqr, q3 + 1.5 * iqr)
-    return Steel_Data[keep]
-
-
 def process_data():
     Steel_Data = load_unprocessed_data()
     Steel_Data = drop_columns(Steel_Data, REMOVE_COLUMNS)
@@ -122,10 +114,6 @@ def process_data():
         Steel_Data = Steel_Data[~is_low_tempering]
         print("Rows after removing low tempering:", len(Steel_Data))
 
-    if REMOVE_OUTLIERS:
-        Steel_Data = remove_outliers_iqr(Steel_Data)
-        print("Rows after removing outliers:", len(Steel_Data))
-        
     if DROP_CORRELATED:
         Steel_Data = Steel_Data.drop(columns=CORRELATED_COLUMNS)
 
