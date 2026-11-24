@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 COMMON_FOLDER = os.path.dirname(os.path.abspath(__file__))
 DATA_STEEL_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE.xlsx")
 
+ROUTE_COLORS = {"N": "blue", "NQT": "red", "QT": "green"}
+ROUTE_NAMES = {"N": "Normalizing only", "NQT": "Normalizing + quenching + tempering", "QT": "Quenching + tempering"}
+
 def load_unprocessed_data():
     Steel_Data = pd.read_excel(DATA_STEEL_PATH)
     # Fix column "0.2% proof stress"

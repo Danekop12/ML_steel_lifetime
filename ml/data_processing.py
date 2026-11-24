@@ -21,13 +21,7 @@ REMOVE_COLUMNS = ["dA", "dB", "dC"]
 #   "N"   - normalizing only
 #   "NQT" - normalizing + quenching + tempering
 #   "QT"  - quenching + tempering
-HEAT_TREATMENT = "NQT"
-
-# What to do with empty temperature values (empty means the step was not performed):
-#   "zero"      - add a present/not present column and fill with 0
-#   "median"    - add a present/not present column and fill with the median temperature
-#   "drop_rows" - remove all rows with missing values (as in the paper)
-MISSING_TEMP = "zero"
+HEAT_TREATMENT = "all"
 
 
 # Drop the four stress columns that are highly correlated with Vickers hardness
@@ -69,15 +63,19 @@ def log10_data(Steel_Data):
     Steel_Data["Nf_log"] = np.log10(Steel_Data["Nf"])
     return Steel_Data
 
-
+# Filters Dataset by checking if temperatures are present or not. 
+# N, NQT, QT. Returns the filtered dataset, rest of rows are dropped.
 def filter_heat_treatment(Steel_Data):
-    # The route is found from which temperatures are filled in.
-    # The result is a column with the text "N", "NQT" or "QT" for every row.
     normalized = Steel_Data["Normalizing temp"].notna()
     quenched = Steel_Data["Quenching temp"].notna()
-    route = normalized.map({True: "N", False: ""}) + quenched.map({True: "QT", False: ""})
-
-    keep = route == HEAT_TREATMENT
+    if HEAT_TREATMENT == "N":
+        route = normalized.map({True: "N", False: ""})
+    elif HEAT_TREATMENT == "NQT":
+        route = normalized.map({True: "N", False: ""}) + quenched.map({True: "QT", False: ""})
+    elif HEAT_TREATMENT == "QT":
+        route = normalized.map({True: "N", False: ""}) + quenched.map({True: "QT", False: ""})
+    # Choose rows to keep in the dataset
+    keep = route.map({HEAT_TREATMENT: True, "": False})
     return Steel_Data[keep]
 
 
@@ -118,10 +116,9 @@ def process_data():
         Steel_Data = Steel_Data.drop(columns=CORRELATED_COLUMNS)
 
 
-    # Missing temperatures (empty means the step was not performed)
-    if MISSING_TEMP == "zero":
-        Steel_Data = add_present_columns(Steel_Data)
-        Steel_Data[TEMP_COLUMNS] = Steel_Data[TEMP_COLUMNS].fillna(0)
+    # Set 0 for missing temperatures.
+    Steel_Data = add_present_columns(Steel_Data)
+    Steel_Data[TEMP_COLUMNS] = Steel_Data[TEMP_COLUMNS].fillna(0)
 
     # Remove the rows that still have missing values. With "drop_rows" this removes every row with
     # an empty temperature. If the stress columns are kept, it removes the rows where they are empty.
