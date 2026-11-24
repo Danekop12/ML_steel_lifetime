@@ -10,6 +10,8 @@ from xgboost import XGBRegressor
 
 # Every model function trains on the training set and returns the predictions for the test set.
 
+RANDOM_SEED = 42
+
 
 def get_evaluation(name, y_test, y_pred):
     mae = mean_absolute_error(y_test, y_pred)
@@ -62,50 +64,44 @@ def model_SVR_poly(X_train, y_train, X_test):
 
 
 def model_RandomForest(X_train, y_train, X_test, n_estimators=300, min_samples_leaf=2):
-    model = RandomForestRegressor(n_estimators=n_estimators, min_samples_leaf=min_samples_leaf, random_state=42)
+    model = RandomForestRegressor(n_estimators=n_estimators, min_samples_leaf=min_samples_leaf, random_state=RANDOM_SEED)
     model.fit(X_train, y_train)
     return model.predict(X_test)
 
 
 def model_XGBoost(X_train, y_train, X_test, n_estimators=400, max_depth=4, learning_rate=0.05):
-    model = XGBRegressor(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate, random_state=42)
+    model = XGBRegressor(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate, random_state=RANDOM_SEED)
     model.fit(np.asarray(X_train), y_train)
     return model.predict(np.asarray(X_test))
 
 
-def model_PolynomialRegression(X_train, y_train, X_test, degree=3, l2=0.001, learning_rate=0.001, epochs=1000, batch_size=128, patience=100):
-    tf.keras.utils.set_random_seed(42)
+def model_PolynomialRegression(X_train, y_train, X_test, degree=3, l2=0.001):
+    tf.keras.utils.set_random_seed(RANDOM_SEED)
 
-    # Expand the features to polynomial terms (squares, cubes and products between the features)
     expand = PolynomialFeatures(degree, include_bias=False)
     X_train_poly = expand.fit_transform(X_train).astype("float32")
     X_test_poly = expand.transform(X_test).astype("float32")
     y_train_array = np.asarray(y_train, dtype="float32")
-
-    # One Dense neuron with no activation is a linear model on the polynomial terms
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(X_train_poly.shape[1],)),
         tf.keras.layers.Dense(1, kernel_regularizer=tf.keras.regularizers.l2(l2)),
     ])
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), loss="mse")
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss="mse")
 
-    # Training stops early when the validation loss has not improved for 'patience' epochs
-    early_stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=patience, restore_best_weights=True)
-    history = model.fit(X_train_poly, y_train_array, epochs=epochs, batch_size=batch_size,
-                        validation_split=0.2, callbacks=[early_stop], verbose=0)
-    print("Epochs run:", len(history.history["loss"]), "of", epochs)
+    history = model.fit(X_train_poly, y_train_array, epochs=1000, batch_size=128,
+                        validation_split=0.2, verbose=0)
+    print("Epochs run:", len(history.history["loss"]), "of", 1000)
 
     return model.predict(X_test_poly, verbose=0).ravel()
 
 
 def model_MLP_Regression(X_train, y_train, X_test, hidden_layers=(256, 256, 256, 256), dropout=0.3, learning_rate=0.001, epochs=500, batch_size=64, patience=50):
-    tf.keras.utils.set_random_seed(42)
+    tf.keras.utils.set_random_seed(RANDOM_SEED)
 
     X_train_array = np.asarray(X_train, dtype="float32")
     X_test_array = np.asarray(X_test, dtype="float32")
     y_train_array = np.asarray(y_train, dtype="float32")
 
-    # Build the network: the input layer, then a Dense layer and a Dropout layer for each hidden layer, then one output neuron
     layers = [tf.keras.layers.Input(shape=(X_train_array.shape[1],))]
     for units in hidden_layers:
         layers.append(tf.keras.layers.Dense(units, activation="relu"))
@@ -115,7 +111,6 @@ def model_MLP_Regression(X_train, y_train, X_test, hidden_layers=(256, 256, 256,
     model = tf.keras.Sequential(layers)
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), loss="mse")
 
-    # Training stops early when the validation loss has not improved for 'patience' epochs
     early_stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=patience, restore_best_weights=True)
     history = model.fit(X_train_array, y_train_array, epochs=epochs, batch_size=batch_size,
                         validation_split=0.2, callbacks=[early_stop], verbose=0)

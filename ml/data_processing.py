@@ -9,8 +9,8 @@ DATA_STEEL_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE.xlsx")
 DATA_PROCESSED_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE_processed.csv")
 
 # Range of Nf to keep. Filtered after applying log10 function, so in range of 5 to 7. Same as 10^5 and 10^7 before
-NF_MIN = 5
-NF_MAX = 7
+NF_MIN = 4
+NF_MAX = 6.99
 
 #List of columns to remove from dataset.
 # All columns: "dA", "dB", "dC", "Upper yield stress", "0.2% proof stress", "Tensile strength", "True fracture stress", "Normalizing temp", "Quenching temp", "Tempering temp", "σa / Vickers hardness", "σa", "Vickers hardness", "Testing Material", "Type of test", "Nf", "Nf_log"
@@ -21,7 +21,7 @@ REMOVE_COLUMNS = ["dA", "dB", "dC"]
 #   "N"   - normalizing only
 #   "NQT" - normalizing + quenching + tempering
 #   "QT"  - quenching + tempering
-HEAT_TREATMENT = "all"
+HEAT_TREATMENT = "NQT"
 
 # What to do with empty temperature values (empty means the step was not performed):
 #   "zero"      - add a present/not present column and fill with 0
@@ -29,24 +29,21 @@ HEAT_TREATMENT = "all"
 #   "drop_rows" - remove all rows with missing values (as in the paper)
 MISSING_TEMP = "zero"
 
-# Remove the 40 rows of S40C tempered at 180 °C. Their hardness (585) is far from all other rows (130-390).
-REMOVE_LOW_TEMPERING = False
-
-# Remove outliers in Nf_log with the IQR method
-REMOVE_OUTLIERS = True
 
 # Drop the four stress columns that are highly correlated with Vickers hardness
 DROP_CORRELATED = True
 
-##############################
 
 TEMP_COLUMNS = ["Normalizing temp", "Quenching temp", "Tempering temp"]
 CORRELATED_COLUMNS = ["Upper yield stress", "0.2% proof stress", "Tensile strength", "True fracture stress"]
 
+pd.set_option("display.width", 200)
+pd.set_option("display.max_columns", None)
+
 SCALERS = {
     "standard": StandardScaler(),   # No fixed range, sensitive to extreme outliers
     "minmax": MinMaxScaler(),       # Range [0, 1], outliers squeeze the rest of the values
-    "robust": RobustScaler(),       # Uses median and IQR, less sensitive to outliers
+    "robust": RobustScaler(),       # Less sensitive to outliers
 }
 
 # Columns that are not features
@@ -116,36 +113,20 @@ def process_data():
     if HEAT_TREATMENT != "all":
         Steel_Data = filter_heat_treatment(Steel_Data)
         print("Rows after the heat treatment filter:", len(Steel_Data))
-
-    if REMOVE_LOW_TEMPERING:
-        is_low_tempering = Steel_Data["Tempering temp"] < 500
-        Steel_Data = Steel_Data[~is_low_tempering]
-        print("Rows after removing low tempering:", len(Steel_Data))
-
-    if REMOVE_OUTLIERS:
-        Steel_Data = remove_outliers_iqr(Steel_Data)
-        print("Rows after removing outliers:", len(Steel_Data))
         
     if DROP_CORRELATED:
         Steel_Data = Steel_Data.drop(columns=CORRELATED_COLUMNS)
 
-    ##############################
+
     # Missing temperatures (empty means the step was not performed)
     if MISSING_TEMP == "zero":
         Steel_Data = add_present_columns(Steel_Data)
-        Steel_Data[TEMP_COLUMNS] = Steel_Data[TEMP_COLUMNS].fillna(0)
-
-    if MISSING_TEMP == "median":
-        Steel_Data = add_present_columns(Steel_Data)
-        Steel_Data[TEMP_COLUMNS] = Steel_Data[TEMP_COLUMNS].fillna(Steel_Data[TEMP_COLUMNS].median())
-        # A column that is completely empty has no median, so it is filled with 0
         Steel_Data[TEMP_COLUMNS] = Steel_Data[TEMP_COLUMNS].fillna(0)
 
     # Remove the rows that still have missing values. With "drop_rows" this removes every row with
     # an empty temperature. If the stress columns are kept, it removes the rows where they are empty.
     Steel_Data = Steel_Data.dropna()
 
-    ##############################
     # Turn the text columns into numbers
     Steel_Data = pd.get_dummies(Steel_Data, columns=["Testing Material"], dtype=int)
 
@@ -184,8 +165,7 @@ def scale_data(X_train, X_test, scaler_name="standard"):
 
 
 if __name__ == "__main__":
-    pd.set_option("display.width", 200)
-    pd.set_option("display.max_columns", None)
+
     Steel_Data = process_data()
     print(Steel_Data.head())
     print(Steel_Data.describe())

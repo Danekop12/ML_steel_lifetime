@@ -15,8 +15,7 @@ def load_unprocessed_data():
     return Steel_Data
 
 
-def show_high_correlations(data, persentage_to_show=0.8, method="spearman", drop_columns=("DS No. PDF",)):
-    ##############################
+def show_corelation(data, persentage_to_show=0.8, method="spearman", drop_columns=("DS No. PDF",)):
     # Run correlation analysis of columns to identify those that are highly correlated with each other.
     # This can help reduce multicollinearity in the model and improve its performance.
     # Running Pandas corr() function with Spearman method.
@@ -26,22 +25,16 @@ def show_high_correlations(data, persentage_to_show=0.8, method="spearman", drop
         np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)
         )
 
-    high_corr = (
-        upper.stack()
-             .reset_index()
-        )
+    high_corr = (upper.stack().reset_index())
 
     high_corr.columns = ["Feature1", "Feature2", "Correlation"]
 
     high_corr = high_corr[high_corr["Correlation"].abs() >= persentage_to_show]
 
-    high_corr = high_corr.reindex(
-        high_corr["Correlation"].abs().sort_values(ascending=False).index
-        )
+    high_corr = high_corr.reindex(high_corr["Correlation"].abs().sort_values(ascending=False).index)
 
-    print("------------------------------------------")
-    print(high_corr.to_string(index=False))
-    #print(high_corr.to_string())
+    #print(high_corr.to_string(index=False))
+    print(high_corr.to_string())
     return high_corr
 
 
@@ -70,9 +63,6 @@ def create_correlation_heatmap(steel_data, columns=None, method="spearman", thre
 
     hidden = np.triu(np.ones((n, n), dtype=bool), k=1)
     shown = correlation.where(~hidden)
-
-    if figsize is None:
-        figsize = (0.38 * n + 2.5, 0.32 * n + 1.7)
     fig, ax = plt.subplots(figsize=figsize)
     im = ax.imshow(shown, cmap="coolwarm", vmin=-1, vmax=1)
     ax.set_xticks(range(n))
@@ -95,14 +85,6 @@ def create_correlation_heatmap(steel_data, columns=None, method="spearman", thre
     return correlation
 
 
-##############################
-# Plots for the data processing decisions
-
-# One fixed color for each heat treatment route
-ROUTE_COLORS = {"N": "blue", "NQT": "red", "QT": "green"}
-ROUTE_NAMES = {"N": "Normalizing only", "NQT": "Normalizing + quenching + tempering", "QT": "Quenching + tempering"}
-
-
 def get_heat_route(data):
     # The route is found from which temperatures are filled in ("N", "NQT" or "QT")
     normalized = data["Normalizing temp"].notna()
@@ -123,8 +105,8 @@ def plot_nf_distribution(data):
     plt.show()
 
 
+# Plot to show to look at different heat
 def plot_sn_curve(data):
-    # The classic fatigue plot: stress amplitude against cycles to failure, different colors for groups
     route = get_heat_route(data)
 
     fig, ax = plt.subplots(figsize=(9, 6))
@@ -153,9 +135,10 @@ def plot_feature_distributions(data, drop_columns=("DS No. PDF", "Nf")):
 
 if __name__ == "__main__":
     data = load_unprocessed_data()
-    show_high_correlations(data)
-    create_correlation_heatmap(data)
+    #show_corelation(data)
+    #create_correlation_heatmap(data)
     #create_correlation_plot(data, "0.2% proof stress", "Upper yield stress")
-    plot_nf_distribution(data)
-    plot_sn_curve(data)
+    #plot_nf_distribution(data)
+    
     plot_feature_distributions(data)
+    plot_sn_curve(data)
