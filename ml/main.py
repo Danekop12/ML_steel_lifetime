@@ -19,7 +19,7 @@ model_name = model.__name__
 SPLIT = 85
 
 # Scalers: StandardScaler(), MinMaxScaler(), RobustScaler()
-scaler = StandardScaler()
+#scaler = StandardScaler()
 
 def load_processed_data():
     Steel_Data = pd.read_csv(DATA_STEEL_PATH)
@@ -32,7 +32,6 @@ X_train, X_test = scale_data(X_train, X_test)
 
 print("Model:", model_name)
 print("Split (train/test): %d/%d" % (SPLIT, 100 - SPLIT))
-print("Scaler:", scaler.__class__.__name__)
 print("Training rows:", len(X_train), "Test rows:", len(X_test))
 
 # Train the chosen model and predict the test set

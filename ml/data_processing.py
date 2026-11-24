@@ -15,6 +15,8 @@ NF_MAX = 6.99
 #List of columns to remove from dataset.
 # All columns: "dA", "dB", "dC", "Upper yield stress", "0.2% proof stress", "Tensile strength", "True fracture stress", "Normalizing temp", "Quenching temp", "Tempering temp", "σa / Vickers hardness", "σa", "Vickers hardness", "Testing Material", "Type of test", "Nf", "Nf_log"
 REMOVE_COLUMNS = ["dA", "dB", "dC"]
+# Colums to remove, have high correlation with Vickers hardness
+CORRELATED_COLUMNS = ["Upper yield stress", "0.2% proof stress", "Tensile strength", "True fracture stress"]
 
 # Choose which heat to model: "all" - all rows,
 #  N - normalizing
@@ -24,11 +26,9 @@ HEAT_TREATMENT = "all"
 
 
 # Drop the four stress columns that are highly correlated with Vickers hardness
-DROP_CORRELATED = False
-
+DROP_CORRELATED = True
 
 TEMP_COLUMNS = ["Normalizing temp", "Quenching temp", "Tempering temp"]
-CORRELATED_COLUMNS = ["Upper yield stress", "0.2% proof stress", "Tensile strength", "True fracture stress"]
 
 pd.set_option("display.width", 150)
 pd.set_option("display.max_columns", None)
@@ -89,7 +89,8 @@ def process_data():
     if HEAT_TREATMENT != "all":
         Steel_Data = filter_heat_treatment(Steel_Data)
         print("Rows after temperature filter:", len(Steel_Data))
-        
+    
+    # To try with all colums too
     if DROP_CORRELATED == True:
         Steel_Data = Steel_Data.drop(columns=CORRELATED_COLUMNS)
     # Set 0 for missing temperatures.
@@ -131,4 +132,4 @@ def scale_data(X_train, X_test):
     return X_train, X_test
 
 if __name__ == "__main__":
-    Steel_Data = process_data()
+    process_data()

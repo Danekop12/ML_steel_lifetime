@@ -16,23 +16,22 @@ def load_unprocessed_data():
     # Fix column "0.2% proof stress" spacing
     Steel_Data.columns = Steel_Data.columns.str.strip()
     Steel_Data = Steel_Data.drop(columns=["Heat", "DS No. PDF"])
+    #Steel_Data.describe()
     return Steel_Data
 
-# Run correlation analysis of columns to identify those that are highly correlated with each other.
-
+# Run correlation analysis. Use abs to ignore negative
 def show_corelation(data, persentage_to_show=0.8, method="spearman"):
     correlations = data.corr(method=method, numeric_only=True)
     
     upper = correlations.where(np.triu(np.ones(correlations.shape), k=1).astype(bool))
-    high_corr = (upper.stack().reset_index())
-    high_corr.columns = ["Feature1", "Feature2", "Correlation"]
-    high_corr = high_corr[high_corr["Correlation"].abs() >= persentage_to_show]
+    high_correlation = (upper.stack().reset_index())
+    high_correlation.columns = ["Feature1", "Feature2", "Correlation"]
+    high_correlation = high_correlation[high_correlation["Correlation"].abs() >= persentage_to_show]
+    high_correlation = high_correlation.reindex(high_correlation["Correlation"].abs().sort_values(ascending=False).index)
 
-    high_corr = high_corr.reindex(high_corr["Correlation"].abs().sort_values(ascending=False).index)
-
-    #print(high_corr.to_string(index=False))
-    print(high_corr.to_string())
-    return high_corr
+    #print(high_correlation.to_string(index=False))
+    print(high_correlation.to_string())
+    return high_correlation
 
 
 #function to create plot correlation between two selected features
@@ -44,7 +43,7 @@ def create_correlation_plot(data, feature1, feature2):
     ax.scatter(data[feature1], data[feature2], alpha=0.5)
     ax.set_xlabel(feature1)
     ax.set_ylabel(feature2)
-    ax.set_title(f"Correlation between {feature1} and {feature2}\nSpearman correlation: {correlation:.2f}")
+    ax.set_title(f"Correlation between {feature1} and {feature2}, Correlation: {correlation:.2f}")
     plt.show()
 
 def create_correlation_heatmap(steel_data, method="spearman"):
