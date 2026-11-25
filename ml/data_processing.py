@@ -88,8 +88,8 @@ def add_present_columns(Steel_Data):
 
  # Convert text columns to numbers
 def encode_text_columns(Steel_Data):
-    Steel_Data = pd.get_dummies(Steel_Data, columns=["Type of test"], drop_first=True)
-    Steel_Data = pd.get_dummies(Steel_Data, columns=["Testing Material"], drop_first=True)
+    Steel_Data = pd.get_dummies(Steel_Data, columns=["Type of test"], drop_first=True, dtype="int")
+    Steel_Data = pd.get_dummies(Steel_Data, columns=["Testing Material"], drop_first=True, dtype="int", prefix="Material")
     return Steel_Data
 
 def process_data():
@@ -131,9 +131,13 @@ def process_data():
     Steel_Data.to_csv(DATA_PROCESSED_PATH, index=False)
 
 def scale_data(X_train, X_test):
-    colums_to_scale = []
-    X_train_fit = scaler.fit_transform(X_train)
-    X_test_fit = scaler.fit_transform(X_test)
+    number_of_values = X_train.nunique()
+    columns = number_of_values[number_of_values > 2].index
+
+    X_train_fit = X_train.copy()
+    X_test_fit = X_test.copy()
+    X_train_fit[columns] = scaler.fit_transform(X_train[columns])
+    X_test_fit[columns] = scaler.transform(X_test[columns])
     return X_train_fit, X_test_fit
 
 

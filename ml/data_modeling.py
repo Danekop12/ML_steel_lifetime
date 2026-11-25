@@ -85,7 +85,7 @@ def model_PolynomialRegression(X_train, y_train, X_test, degree=3, alpha=10):
     return model.predict(X_test_poly)
 
 # Could have lot of overfitting
-def model_MLP(X_train, y_train, X_test, hidden_layer_sizes=(256, 256, 128, 128), alpha=0.0001):
+def model_MLP(X_train, y_train, X_test, hidden_layer_sizes=(256, 256, 128, 128), alpha=0.01):
     model = MLPRegressor(hidden_layer_sizes=hidden_layer_sizes, activation="relu", solver="adam", learning_rate_init=0.001,
                          alpha=alpha, max_iter=1000, batch_size=64, random_state=RANDOM_SEED, early_stopping=True,
                          validation_fraction=0.2, n_iter_no_change=50)
