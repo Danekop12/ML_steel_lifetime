@@ -10,7 +10,6 @@ DATA_STEEL_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE.xlsx")
 
 #Dict to plot different heat routes
 ROUTE_NAMES = {"N": "Normalizing", "NQT": "Normalizing + quenching + tempering", "QT": "Quenching + tempering"}
-
 def load_unprocessed_data():
     Steel_Data = pd.read_excel(DATA_STEEL_PATH)
     # Fix column "0.2% proof stress" spacing
@@ -77,7 +76,7 @@ def plot_nf_distribution(data):
 def plot_sn_curve(data):
     data = data.copy()
     data["Heat treatment"] = get_heat_route(data).map(ROUTE_NAMES)
-    fig = px.scatter(data, x="Nf", y="a", color="Heat treatment", log_x=True, opacity=0.5, title="S-N plot for different heat routes")
+    fig = px.scatter(data, x="Nf", y="σa", color="Heat treatment", log_x=True, opacity=0.5, title="S-N plot for different heat routes")
     fig.show()
 
 
