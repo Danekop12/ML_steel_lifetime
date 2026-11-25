@@ -9,13 +9,13 @@ DATA_STEEL_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE_proces
 
 
 # The model function to train: model_LinearRegression, model_SVR_linear, model_SVR_rbf, model_SVR_poly,
-#                              model_XGBoost, model_PolynomialRegression, model_MLP
+#                              model_XGBoost, model_PolynomialRegression, model_MLP, model_LightGBM
 model = model_MLP
 model_name = model.__name__ 
 
 # How much of the data is used for training, in percent
-# TODO: write 80/20, 70/30, 90/10
-SPLIT = 85
+# TODO: write 85/15, 80/20, 70/30, 90/10
+SPLIT = 80
 
 # Scalers: StandardScaler(), MinMaxScaler(), RobustScaler()
 #scaler = StandardScaler()
@@ -37,4 +37,4 @@ y_pred = model(X_train, y_train, X_test)
 
 # Calculate and print the evaluation metrics for the model on the test set, and plot the predictions
 get_evaluation(model_name, y_test, y_pred)
-plot_predictions(model_name, y_test, y_pred)
+#plot_predictions(model_name, y_test, y_pred)

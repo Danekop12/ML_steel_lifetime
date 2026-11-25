@@ -95,6 +95,6 @@ if __name__ == "__main__":
     #create_correlation_plot(data, "0.2% proof stress", "Upper yield stress")
     #plot_nf_distribution(data)
     
-    #plot_feature_distributions(data)
+    #plot_f ature_distributions(data)
     plot_sn_curve(data)
     create_correlation_heatmap(data)

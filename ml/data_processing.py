@@ -25,6 +25,9 @@ CORRELATED_COLUMNS = ["Upper yield stress", "0.2% proof stress", "Tensile streng
 HEAT_TREATMENT = "all"
 
 
+# Seed that affects how data beign splited 
+SPLIT_SEED = 42
+
 # Drop the four stress columns that are highly correlated with Vickers hardness
 DROP_CORRELATED = True
 
@@ -52,7 +55,7 @@ def split_data(Steel_Data, split):
 
     test_size = 1 - split_percentage
     print(f"Split (train/test): {split}/{100 - split}")
-    return train_test_split(X, Y, test_size=test_size, random_state=42)
+    return train_test_split(X, Y, test_size=test_size, random_state=SPLIT_SEED)
 
 
 # Convert Nf to log10(Nf) and add it as a new column

@@ -9,7 +9,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import xgboost as xgb
 import lightgbm
 
-#Random seed for reproducibility
+#Random seed for reproducibility. Only for the models 
 RANDOM_SEED = 42
 
 
@@ -69,7 +69,7 @@ def model_XGBoost(X_train, y_train, X_test):
     return model.predict(X_test)
 
 def model_LightGBM(X_train, y_train, X_test):
-    model = lightgbm.LGBMRegressor(n_estimators=500, learning_rate=0.05, random_state=RANDOM_SEED)
+    model = lightgbm.LGBMRegressor(n_estimators=500, learning_rate=0.05, random_state=RANDOM_SEED, num_leaves=20)
     model.fit(X_train, y_train)
     lightgbm.plot_importance(model, title="LightGBM features importance")
     return model.predict(X_test)
@@ -82,12 +82,16 @@ def model_PolynomialRegression(X_train, y_train, X_test, degree=3, alpha=10):
     # Regression with a penalty for large weights because there are more columns than rows
     model = Ridge(alpha=alpha)
     model.fit(X_train_poly, y_train)
+    print("Degrees of freedom: ", degree)
+    print("Alpha value: ", alpha)
     return model.predict(X_test_poly)
 
 # Could have lot of overfitting
-def model_MLP(X_train, y_train, X_test, hidden_layer_sizes=(256, 256, 128, 128), alpha=0.0001):
+def model_MLP(X_train, y_train, X_test, hidden_layer_sizes=(64, 64), alpha=0.0001):
     model = MLPRegressor(hidden_layer_sizes=hidden_layer_sizes, activation="relu", solver="adam", learning_rate_init=0.001,
-                         alpha=alpha, max_iter=1000, batch_size=64, random_state=RANDOM_SEED, early_stopping=True,
+                         alpha=alpha, max_iter=1500, batch_size=64, random_state=RANDOM_SEED, early_stopping=True,
                          validation_fraction=0.2, n_iter_no_change=50)
     model.fit(X_train, y_train)
+    print("Hidden layer: ", hidden_layer_sizes)
+    print("Alpha value: ", alpha)
     return model.predict(X_test)
