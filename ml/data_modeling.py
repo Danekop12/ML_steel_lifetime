@@ -65,13 +65,13 @@ def model_SVR_poly(X_train, y_train, X_test):
 def model_XGBoost(X_train, y_train, X_test):
     model = xgb.XGBRegressor(n_estimators=500, learning_rate=0.05, random_state=RANDOM_SEED)
     model.fit(X_train, y_train)
-    xgb.plot_importance(model, title ="XGBoost features importance")
+    #xgb.plot_importance(model, title ="XGBoost features importance")
     return model.predict(X_test)
 
 def model_LightGBM(X_train, y_train, X_test):
-    model = lightgbm.LGBMRegressor(n_estimators=500, learning_rate=0.05, random_state=RANDOM_SEED, num_leaves=20)
+    model = lightgbm.LGBMRegressor(n_estimators=1000, learning_rate=0.05, random_state=RANDOM_SEED, num_leaves=15)
     model.fit(X_train, y_train)
-    lightgbm.plot_importance(model, title="LightGBM features importance")
+    #lightgbm.plot_importance(model, title="LightGBM features importance")
     return model.predict(X_test)
 
 def model_PolynomialRegression(X_train, y_train, X_test, degree=3, alpha=10):
@@ -82,12 +82,12 @@ def model_PolynomialRegression(X_train, y_train, X_test, degree=3, alpha=10):
     # Regression with a penalty for large weights because there are more columns than rows
     model = Ridge(alpha=alpha)
     model.fit(X_train_poly, y_train)
-    print("Degrees of freedom: ", degree)
+    print("Polynomial degree: ", degree)
     print("Alpha value: ", alpha)
     return model.predict(X_test_poly)
 
 # Could have lot of overfitting
-def model_MLP(X_train, y_train, X_test, hidden_layer_sizes=(64, 64), alpha=0.0001):
+def model_MLP(X_train, y_train, X_test, hidden_layer_sizes=(256, 256, 256, 256), alpha=0.0001):
     model = MLPRegressor(hidden_layer_sizes=hidden_layer_sizes, activation="relu", solver="adam", learning_rate_init=0.001,
                          alpha=alpha, max_iter=1500, batch_size=64, random_state=RANDOM_SEED, early_stopping=True,
                          validation_fraction=0.2, n_iter_no_change=50)

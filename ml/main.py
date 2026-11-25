@@ -15,7 +15,7 @@ model_name = model.__name__
 
 # How much of the data is used for training, in percent
 # TODO: write 85/15, 80/20, 70/30, 90/10
-SPLIT = 80
+SPLIT = 85
 
 # Scalers: StandardScaler(), MinMaxScaler(), RobustScaler()
 #scaler = StandardScaler()
