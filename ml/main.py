@@ -37,4 +37,4 @@ y_pred = model(X_train, y_train, X_test)
 
 # Calculate and print the evaluation metrics for the model on the test set, and plot the predictions
 get_evaluation(model_name, y_test, y_pred)
-#plot_predictions(model_name, y_test, y_pred)
+plot_predictions(model_name, y_test, y_pred)
