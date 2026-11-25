@@ -8,43 +8,39 @@ COMMON_FOLDER = os.path.dirname(os.path.abspath(__file__))
 DATA_STEEL_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE.xlsx")
 DATA_PROCESSED_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE_processed.csv")
 
-# Range of Nf to keep. Filtered after applying log10 function, so in range of 5 to 7. Same as 10^5 and 10^7 before
+# Range of Nf values to keep. Filtered after applying log10 function, so in range from 5 and up to but not including 7.
+# This corresponds to Nf values from 10^4 to just below 10^7.
 NF_MIN = 4
 NF_MAX = 6.99
 
-#List of columns to remove from dataset.
-# All columns: "dA", "dB", "dC", "Upper yield stress", "0.2% proof stress", "Tensile strength", "True fracture stress", "Normalizing temp", "Quenching temp", "Tempering temp", "σa / Vickers hardness", "σa", "Vickers hardness", "Testing Material", "Type of test", "Nf", "Nf_log"
-REMOVE_COLUMNS = ["dA", "dB", "dC"]
-# Colums to remove, have high correlation with Vickers hardness
+# List of columns to remove from dataset based on not being relevant for the mechanical properties of the steel.
+REMOVE_COLUMNS = ["Heat", "DS No. PDF", "dA", "dB", "dC"]
+
+# Columns to remove after correlation analysis. All have high correlation with Vickers hardness
 CORRELATED_COLUMNS = ["Upper yield stress", "0.2% proof stress", "Tensile strength", "True fracture stress"]
+DROP_CORRELATED = True
 
-# Choose which heat to model: "all" - all rows,
-#  N - normalizing
-#  NQT - normalizing + quenching + tempering
+# Choose which heat treatment to use for the models:
+# "all" - all rows,
+#  N - only normalizing
 #  QT - quenching + tempering
+#  NQT - normalizing + quenching + tempering
 HEAT_TREATMENT = "all"
-
+TEMP_COLUMNS = ["Normalizing temp", "Quenching temp", "Tempering temp"]
 
 # Seed that affects how data beign splited 
 SPLIT_SEED = 42
 
-# Drop the four stress columns that are highly correlated with Vickers hardness
-DROP_CORRELATED = True
-
-TEMP_COLUMNS = ["Normalizing temp", "Quenching temp", "Tempering temp"]
-
 pd.set_option("display.width", 150)
 pd.set_option("display.max_columns", None)
 
-# Chose scaler: StandardScaler(), MinMaxScaler(), RobustScaler()
+# Choose the scaler to be used for the pre-processing of the dataset: StandardScaler(), MinMaxScaler(), RobustScaler()
 scaler = StandardScaler()
-
 
 def load_unprocessed_data():
     Steel_Data = pd.read_excel(DATA_STEEL_PATH)
-    # Fix column "0.2% proof stress" spacing
     Steel_Data.columns = Steel_Data.columns.str.strip()
-    Steel_Data = Steel_Data.drop(columns=["Heat", "DS No. PDF"])
+    Steel_Data = Steel_Data.drop(columns=REMOVE_COLUMNS)
     return Steel_Data
 
 def split_data(Steel_Data, split):
@@ -56,7 +52,6 @@ def split_data(Steel_Data, split):
     test_size = 1 - split_percentage
     print(f"Split (train/test): {split}/{100 - split}")
     return train_test_split(X, Y, test_size=test_size, random_state=SPLIT_SEED)
-
 
 # Convert Nf to log10(Nf) and add it as a new column
 def log10_data(Steel_Data):
@@ -89,50 +84,52 @@ def add_present_columns(Steel_Data):
     Steel_Data["t_temp_present"] = Steel_Data["Tempering temp"].notna().astype(int)
     return Steel_Data
 
- # Convert text columns to numbers
+# Convert categorical text columns to numbers
 def encode_text_columns(Steel_Data):
     Steel_Data = pd.get_dummies(Steel_Data, columns=["Type of test"], drop_first=True, dtype="int")
     Steel_Data = pd.get_dummies(Steel_Data, columns=["Testing Material"], drop_first=True, dtype="int", prefix="Material")
     return Steel_Data
 
+# Main function for pre-processing the data
 def process_data():
+    # Load the dataset as dataframe
     Steel_Data = load_unprocessed_data()
-    Steel_Data = Steel_Data.drop(columns=REMOVE_COLUMNS)
+    
     # Convert Nf to log10(Nf)
     Steel_Data = log10_data(Steel_Data)
-    #Filters Nf log by val described earlier
+
+    #Filters Nf log values by minimum and maximum values to be used
     Steel_Data = Steel_Data[(Steel_Data["Nf_log"] >= NF_MIN) & (Steel_Data["Nf_log"] <= NF_MAX)]
     print(Steel_Data["Nf_log"].describe())  # Show the range of Nf_log after filtering
 
-    # To try with all colums too
-    if DROP_CORRELATED == True:
-        Steel_Data = Steel_Data.drop(columns=CORRELATED_COLUMNS)
-    # Set 0 for missing temperatures
+    # Drop columns that are highly correlated
+    Steel_Data = Steel_Data.drop(columns=CORRELATED_COLUMNS)
+    
+    # Identify rows with empty values, add binary columns to indicate presence, add 0 for all missing temperatures
     Steel_Data = add_present_columns(Steel_Data)
     Steel_Data[TEMP_COLUMNS] = Steel_Data[TEMP_COLUMNS].fillna(0)
-    
+
+    # Apply filtering of the heat treatment columns - only if not set to "all"
     if HEAT_TREATMENT != "all":
         Steel_Data = filter_heat_treatment(Steel_Data)
         print("Rows after temperature filter:", len(Steel_Data))
     
-    # Remove the rows that still have missing values. With "drop_rows" this removes every row with an empty temperature. If the stress columns are kept, it removes the rows where they are empty.
-    #Steel_Data = Steel_Data.dropna()
-    
-    # Text converted to numbers, one-hot encoding
+    # Convert categorical text columns to numbers, use OneHotEncoding
     Steel_Data = encode_text_columns(Steel_Data)   
     
-    
-    
-    
-    # -2 for Nf and Nf_log
-    amount_of_features = Steel_Data.shape[1] - 2
+    # Prepare print output for summarizing the processed data, including the number of features and a preview of the dataset.
+    amount_of_features = Steel_Data.shape[1] - 2        # -2 for the Nf and Nf_log columns, which are not features
     print("Data rows after processing: ", len(Steel_Data))
     print("Amount of features: ", amount_of_features)
     print(Steel_Data.head())    
     print(Steel_Data.describe())
-    # Save processed data
+
+    # Save the processed data as CSV
     Steel_Data.to_csv(DATA_PROCESSED_PATH, index=False)
 
+# Main function for scaling the values of the features of the dataset
+# Performs scaling on both the training and test sets, using the selected scaler.
+# Only scales columns with more than 2 unique values, as binary columns are not scaled.
 def scale_data(X_train, X_test):
     number_of_values = X_train.nunique()
     columns = number_of_values[number_of_values > 2].index

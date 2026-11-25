@@ -8,11 +8,11 @@ import plotly.express as px
 COMMON_FOLDER = os.path.dirname(os.path.abspath(__file__))
 DATA_STEEL_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE.xlsx")
 
-#Dict to plot different heat routes
+# Dict to plot different heat routes
 ROUTE_NAMES = {"N": "Normalizing", "NQT": "Normalizing + quenching + tempering", "QT": "Quenching + tempering"}
+
 def load_unprocessed_data():
     Steel_Data = pd.read_excel(DATA_STEEL_PATH)
-    # Fix column "0.2% proof stress" spacing
     Steel_Data.columns = Steel_Data.columns.str.strip()
     Steel_Data = Steel_Data.drop(columns=["Heat", "DS No. PDF"])
     #Steel_Data.describe()
@@ -33,8 +33,7 @@ def show_corelation(data, persentage_to_show=0.8, method="spearman"):
     return high_correlation
 
 
-#function to create plot correlation between two selected features
-
+# Function to create correlation plot between two selected features
 def create_correlation_plot(data, feature1, feature2):
     correlation = data[[feature1, feature2]].corr(method="spearman").iloc[0, 1]
 
@@ -52,17 +51,10 @@ def create_correlation_heatmap(steel_data, method="spearman"):
     fig.show()
     return correlation
 
-# Find which temperatures are filled in ("N", "NQT" or "QT")
-def get_heat_route(data):
-    normalized = data["Normalizing temp"].notna()
-    quenched = data["Quenching temp"].notna()
-    return normalized.map({True: "N", False: ""}) + quenched.map({True: "QT", False: ""})
-
 
 # Visualize the distribution of Nf values in the dataset
 def plot_nf_distribution(data):
     nf_log = np.log10(data["Nf"])
-
     fig, ax = plt.subplots(figsize=(9, 5))
     ax.hist(nf_log, bins=120, color="blue")
     ax.set_xlabel("log10(Nf)")
@@ -71,30 +63,34 @@ def plot_nf_distribution(data):
     fig.tight_layout()
     plt.show()
 
+# Find which temperatures are filled in ("N", "NQT" or "QT")
+def get_heat_route(data):
+    normalized = data["Normalizing temp"].notna()
+    quenched = data["Quenching temp"].notna()
+    return normalized.map({True: "N", False: ""}) + quenched.map({True: "QT", False: ""})
 
-# Plot to show to look at different heat
+# Plot to show how the different heat treatments and the σa values relate to the Nf values.
+# The x-axis is log10(Nf) and the y-axis is σa. The points are colored by the heat treatment route.
 def plot_sn_curve(data):
     data = data.copy()
     data["Heat treatment"] = get_heat_route(data).map(ROUTE_NAMES)
     fig = px.scatter(data, x="Nf", y="σa", color="Heat treatment", log_x=True, opacity=0.5, title="S-N plot for different heat routes")
     fig.show()
 
-
+# Plot to show the distribution of each numeric feature in the dataset.
+# This helps to visualize the scale of each feature and identify any outliers or values that are far from the rest of the data.
 def plot_feature_distributions(data):
-    # Shows the scale of each feature and values far from the rest
     data.hist(bins=30, figsize=(14, 10), color="blue")
     plt.suptitle("Distribution of each numeric feature")
     plt.tight_layout()
     plt.show()
 
 
-
 if __name__ == "__main__":
     data = load_unprocessed_data()
     show_corelation(data)
-    #create_correlation_plot(data, "0.2% proof stress", "Upper yield stress")
+    create_correlation_plot(data, "0.2% proof stress", "Upper yield stress")
     #plot_nf_distribution(data)
-    
-    #plot_f ature_distributions(data)
+    #plot_feature_distributions(data)
     plot_sn_curve(data)
     create_correlation_heatmap(data)
