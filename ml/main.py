@@ -2,16 +2,15 @@
 import os
 import pandas as pd
 from data_processing import process_data, split_data, scale_data
-from data_modeling import (get_evaluation, plot_predictions,model_LinearRegression, model_SVR_linear, model_SVR_rbf, model_SVR_poly,model_RandomForest, model_XGBoost, model_PolynomialRegression, model_MLP_Regression, model_LightGBM)
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+from data_modeling import (get_evaluation, plot_predictions,model_LinearRegression, model_SVR_linear, model_SVR_rbf, model_SVR_poly, model_XGBoost, model_PolynomialRegression, model_MLP, model_LightGBM)
 
 COMMON_FOLDER = os.path.dirname(os.path.abspath(__file__))
 DATA_STEEL_PATH = os.path.join(COMMON_FOLDER, "..", "data", "NIMS_FATIGUE_processed.csv")
 
 
 # The model function to train: model_LinearRegression, model_SVR_linear, model_SVR_rbf, model_SVR_poly,
-#                              model_RandomForest, model_XGBoost, model_PolynomialRegression, model_MLP_Regression
-model = model_LightGBM
+#                              model_XGBoost, model_PolynomialRegression, model_MLP
+model = model_MLP
 model_name = model.__name__ 
 
 # How much of the data is used for training, in percent
@@ -31,7 +30,6 @@ X_train, X_test, y_train, y_test = split_data(Steel_Data, split=SPLIT)
 X_train, X_test = scale_data(X_train, X_test)
 
 print("Model:", model_name)
-print("Split (train/test): %d/%d" % (SPLIT, 100 - SPLIT))
 print("Training rows:", len(X_train), "Test rows:", len(X_test))
 
 # Train the chosen model and predict the test set

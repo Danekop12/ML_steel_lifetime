@@ -77,8 +77,7 @@ def plot_nf_distribution(data):
 def plot_sn_curve(data):
     data = data.copy()
     data["Heat treatment"] = get_heat_route(data).map(ROUTE_NAMES)
-
-    fig = px.scatter(data, x="Nf", y="σa", color="Heat treatment", log_x=True, opacity=0.5, title="S-N plot for different heat treatment routes")
+    fig = px.scatter(data, x="Nf", y="a", color="Heat treatment", log_x=True, opacity=0.5, title="S-N plot for different heat routes")
     fig.show()
 
 

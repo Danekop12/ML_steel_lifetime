@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import linear_model
 from sklearn.svm import SVR
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.neural_network import MLPRegressor
 from sklearn.linear_model import Ridge
@@ -63,23 +62,16 @@ def model_SVR_poly(X_train, y_train, X_test):
     model.fit(X_train, y_train)
     return model.predict(X_test)
 
-
-def model_RandomForest(X_train, y_train, X_test):
-    # min_samples_leaf, use to avoid overfitting and noise
-    model = RandomForestRegressor(n_estimators=300, random_state=RANDOM_SEED)
+def model_XGBoost(X_train, y_train, X_test):
+    model = xgb.XGBRegressor(n_estimators=500, learning_rate=0.05, random_state=RANDOM_SEED)
     model.fit(X_train, y_train)
-    return model.predict(X_test)
-
-def model_XGBoost(X_train, y_train, X_test, n_estimators=400, max_depth=4, learning_rate=0.05):
-    model = xgb.XGBRegressor(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate, random_state=RANDOM_SEED)
-    model.fit(X_train, y_train)
-    xgb.plot_importance(model, importance_type="gain")
+    xgb.plot_importance(model, title ="XGBoost features importance")
     return model.predict(X_test)
 
 def model_LightGBM(X_train, y_train, X_test):
     model = lightgbm.LGBMRegressor(random_state=RANDOM_SEED)
     model.fit(X_train, y_train)
-    lightgbm.plot_importance(model)
+    lightgbm.plot_importance(model, title="LightGBM features importance")
     return model.predict(X_test)
 
 def model_PolynomialRegression(X_train, y_train, X_test, degree=3, alpha=10):
@@ -93,7 +85,7 @@ def model_PolynomialRegression(X_train, y_train, X_test, degree=3, alpha=10):
     return model.predict(X_test_poly)
 
 # Could have lot of overfitting
-def model_MLP_Regression(X_train, y_train, X_test, hidden_layer_sizes=(256, 256, 256, 256), alpha=0.0001):
+def model_MLP(X_train, y_train, X_test, hidden_layer_sizes=(256, 256, 128, 128), alpha=0.0001):
     model = MLPRegressor(hidden_layer_sizes=hidden_layer_sizes, activation="relu", solver="adam", learning_rate_init=0.001,
                          alpha=alpha, max_iter=1000, batch_size=64, random_state=RANDOM_SEED, early_stopping=True,
                          validation_fraction=0.2, n_iter_no_change=50)
